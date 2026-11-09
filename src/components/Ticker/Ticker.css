@@ -1,0 +1,24 @@
+.ticker {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  width: min(560px, 86vw);
+  z-index: 20;
+  background: rgba(24, 24, 24, 0.82);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 0;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  pointer-events: none;
+}
+
+.ticker .marquee {
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}

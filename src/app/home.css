@@ -1,0 +1,24 @@
+.home {
+  position: relative;
+  height: calc(100vh - 190px);
+  overflow: hidden;
+}
+
+.home-veil {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.42s ease;
+  z-index: 65;
+}
+.home-veil.is-on {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  .home {
+    height: calc(100vh - 148px);
+  }
+}

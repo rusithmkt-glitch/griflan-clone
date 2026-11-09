@@ -1,0 +1,67 @@
+.globe {
+  position: fixed;
+  left: 26px;
+  bottom: 26px;
+  width: 92px;
+  height: 92px;
+  z-index: 40;
+  perspective: 500px;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6));
+}
+
+.globe-sphere {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: globe-spin 14s linear infinite;
+}
+
+.globe-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(245, 242, 234, 0.4);
+  border-radius: 50%;
+}
+
+.globe-equator {
+  transform: rotateX(90deg);
+  border-color: rgba(245, 242, 234, 0.55);
+}
+
+.globe-tropic {
+  inset: 12%;
+}
+
+.globe-letter {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 30px;
+  color: var(--ink);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes globe-spin {
+  from {
+    transform: rotateX(-12deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateX(-12deg) rotateY(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .globe {
+    width: 64px;
+    height: 64px;
+    left: 14px;
+    bottom: 14px;
+  }
+  .globe-letter {
+    font-size: 22px;
+  }
+}

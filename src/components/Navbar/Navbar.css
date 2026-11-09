@@ -1,0 +1,408 @@
+/* ============ NAVBAR ============ */
+
+.navbar {
+  width: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  position: relative;
+  z-index: 70;
+}
+
+.navbar-full {
+  display: grid;
+  grid-template-columns: 88px 88px 1fr 1.35fr 1fr 80px 80px;
+  grid-template-rows: 64px 126px;
+  grid-template-areas:
+    "home about servicesTop brand taglineTop insta link"
+    "mascot mascot services brand tagline cta cta";
+  border-bottom: 1px solid var(--line);
+}
+
+.navbar-full.is-sticky {
+  position: sticky;
+  top: 0;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 500;
+  min-width: 0;
+}
+
+.cell-home {
+  grid-area: home;
+}
+.cell-about {
+  grid-area: about;
+}
+.cell-services-top {
+  grid-area: servicesTop;
+}
+.cell-brand {
+  grid-area: brand;
+  border-bottom: none;
+}
+.cell-tagline-top {
+  grid-area: taglineTop;
+}
+.cell-insta {
+  grid-area: insta;
+}
+.cell-link {
+  grid-area: link;
+  border-right: none;
+}
+.cell-mascot {
+  grid-area: mascot;
+  border-bottom: none;
+}
+.cell-services {
+  grid-area: services;
+  border-bottom: none;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.cell-tagline {
+  grid-area: tagline;
+  border-bottom: none;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.cell-cta {
+  grid-area: cta;
+  border-right: none;
+  border-bottom: none;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  transition: background 0.3s ease;
+  margin: 12px;
+  border-radius: 6px;
+}
+.cell-cta:hover {
+  background: var(--accent-deep);
+}
+
+.cell-home:hover,
+.cell-about:hover,
+.cell-insta:hover,
+.cell-link:hover {
+  background: var(--surface);
+  color: var(--amber);
+}
+.cell-home.is-current,
+.cell-about.is-current {
+  color: var(--amber);
+}
+
+/* brand wordmark + hover gradient sweep */
+.brand-text {
+  font-size: clamp(24px, 3.6vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: var(--ink);
+  white-space: nowrap;
+  text-transform: none;
+}
+.brand-text em {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin-left: 0.12em;
+}
+.cell-brand a:hover .brand-text,
+.compact-brand:hover .brand-text {
+  background: linear-gradient(100deg, var(--ink) 10%, var(--sky) 35%, var(--violet) 55%, var(--ink) 80%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: brand-sweep 1.6s linear infinite;
+}
+@keyframes brand-sweep {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: -220% 0;
+  }
+}
+
+/* mascot */
+.mascot {
+  width: 74px;
+  height: 86px;
+  overflow: visible;
+}
+.mascot-arm {
+  transform-origin: 88px 78px;
+  animation: mascot-wave 2.4s ease-in-out infinite;
+}
+@keyframes mascot-wave {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-16deg);
+  }
+  60% {
+    transform: rotate(8deg);
+  }
+}
+.mascot-sparks {
+  animation: mascot-spark 1.8s ease-in-out infinite;
+}
+@keyframes mascot-spark {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+/* ============ COMPACT ============ */
+
+.navbar-compact {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-h-compact);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 26px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.compact-side {
+  display: flex;
+  gap: 26px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.compact-side a {
+  color: var(--ink-dim);
+  transition: color 0.25s;
+}
+.compact-side a:hover,
+.compact-side a.is-current {
+  color: var(--ink);
+}
+
+.compact-pill {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-deep);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+.compact-brand {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  border-right: 1px solid var(--line);
+}
+.compact-brand .brand-text {
+  font-size: 24px;
+}
+
+.compact-project {
+  position: relative;
+  display: flex;
+}
+.compact-project-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  font-size: 15px;
+  color: var(--ink);
+  border-right: 1px solid var(--line);
+  min-width: 170px;
+  justify-content: space-between;
+  transition: background 0.25s;
+}
+.compact-project-btn:hover {
+  background: var(--surface);
+}
+.funnel {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-dim);
+}
+
+.switcher {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 320px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  padding: 8px;
+  z-index: 80;
+  animation: switcher-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes switcher-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.switcher-item {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+.switcher-item:hover {
+  background: var(--surface-2);
+}
+.switcher-item.is-current {
+  background: var(--surface-2);
+}
+.switcher-dot {
+  grid-row: 1 / span 2;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.switcher-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+.switcher-cat {
+  grid-column: 2;
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+.compact-cta {
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  padding: 10px 22px;
+  margin: 6px;
+  border-radius: 10px;
+  transition: background 0.25s;
+  white-space: nowrap;
+}
+.compact-cta:hover {
+  background: var(--accent-deep);
+}
+
+/* ============ responsive ============ */
+
+@media (max-width: 1100px) {
+  .navbar-full {
+    grid-template-columns: 70px 70px 1fr 1.3fr 70px 70px;
+    grid-template-areas:
+      "home about servicesTop brand insta link"
+      "mascot mascot services brand cta cta";
+  }
+  .cell-tagline,
+  .cell-tagline-top {
+    display: none;
+  }
+  .cell-services {
+    font-size: 17px;
+  }
+  .cell-cta {
+    font-size: 17px;
+    margin: 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  .navbar-full {
+    grid-template-columns: 60px 60px 1fr 96px;
+    grid-template-rows: 52px 96px;
+    grid-template-areas:
+      "home about brand cta"
+      "mascot mascot services cta";
+  }
+  .cell-services-top,
+  .cell-insta,
+  .cell-link,
+  .cell-tagline,
+  .cell-tagline-top {
+    display: none;
+  }
+  .cell-brand .brand-text {
+    font-size: 24px;
+  }
+  .cell-services {
+    font-size: 14px;
+  }
+  .cell-cta {
+    font-size: 14px;
+    margin: 8px;
+  }
+  .mascot {
+    width: 52px;
+    height: 62px;
+  }
+  .navbar-compact {
+    padding: 0 12px;
+  }
+  .compact-side {
+    gap: 12px;
+    font-size: 11px;
+  }
+  .compact-right {
+    display: none;
+  }
+  .compact-brand .brand-text {
+    font-size: 18px;
+  }
+  .compact-project-btn {
+    min-width: 0;
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+  .compact-cta {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+}
