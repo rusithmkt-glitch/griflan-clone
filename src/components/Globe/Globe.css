@@ -6,8 +6,9 @@
   height: 92px;
   z-index: 40;
   perspective: 500px;
-  pointer-events: none;
+  pointer-events: auto;
   filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6));
+  cursor: pointer;
 }
 
 .globe-sphere {

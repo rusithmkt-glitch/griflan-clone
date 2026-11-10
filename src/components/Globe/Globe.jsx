@@ -1,8 +1,9 @@
 import "./Globe.css";
+import Link from "next/link";
 
 export default function Globe() {
   return (
-    <div className="globe" aria-hidden="true">
+    <Link className="globe" href="/" aria-label="Back to home">
       <div className="globe-sphere">
         {[0, 30, 60, 90, 120, 150].map((deg) => (
           <span key={deg} className="globe-ring" style={{ transform: `rotateY(${deg}deg)` }} />
@@ -12,6 +13,6 @@ export default function Globe() {
         <span className="globe-ring globe-tropic" style={{ transform: "rotateX(-66deg)" }} />
       </div>
       <span className="globe-letter">G</span>
-    </div>
+    </Link>
   );
 }

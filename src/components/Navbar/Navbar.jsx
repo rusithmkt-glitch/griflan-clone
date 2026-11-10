@@ -11,7 +11,7 @@ import "./Navbar.css";
 function Brand() {
   return (
     <span className="brand-text">
-      Grow<em>Beyond</em>
+      Scale<em>Beyond</em>
     </span>
   );
 }
@@ -50,7 +50,7 @@ export default function Navbar({
     return () => window.removeEventListener("pointerdown", down);
   }, [switcher]);
 
-  const compact = variant === "compact" || scrolled;
+  const compact = variant === "compact" || (sticky && scrolled);
 
   if (compact) {
     return (
@@ -175,9 +175,9 @@ export default function Navbar({
       <div className="cell cell-mascot">
         <Mascot />
       </div>
-      <div className="cell cell-services">Branding + Web + Motion</div>
+      <div className="cell cell-services">Branding + Web + Marketing</div>
       <div className="cell cell-services-bottom" aria-hidden="true" />
-      <div className="cell cell-tagline">Crafting Brands That Hit Hard</div>
+      <div className="cell cell-tagline">Crafting Brands That Drive Sales</div>
       <div className="cell cell-tagline-bottom" aria-hidden="true" />
       <button className="cell cell-cta" onClick={openContact}>
         Start A Project
