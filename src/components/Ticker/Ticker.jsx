@@ -2,7 +2,7 @@ import { tickerItems } from "@/data/projects";
 import "./Ticker.css";
 
 export default function Ticker() {
-  const line = tickerItems.join("  ·  ") + "  ·  ";
+  const line = tickerItems.join("  •  ") + "  •  ";
   return (
     <div className="ticker" role="marquee" aria-label="Studio news">
       <div className="marquee">

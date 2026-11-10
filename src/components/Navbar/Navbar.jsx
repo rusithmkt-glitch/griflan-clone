@@ -139,7 +139,9 @@ export default function Navbar({ variant = "full", project = null, sticky = fals
         <Mascot />
       </div>
       <div className="cell cell-services">Branding + Web + Motion</div>
+      <div className="cell cell-services-bottom" aria-hidden="true" />
       <div className="cell cell-tagline">Crafting Brands That Hit Hard</div>
+      <div className="cell cell-tagline-bottom" aria-hidden="true" />
       <button className="cell cell-cta" onClick={openContact}>
         Start A Project
       </button>

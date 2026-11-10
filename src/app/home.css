@@ -1,6 +1,6 @@
 .home {
   position: relative;
-  height: calc(100vh - 190px);
+  height: calc(100vh - 189px);
   overflow: hidden;
 }
 
@@ -17,8 +17,14 @@
   opacity: 1;
 }
 
+@media (max-width: 1100px) {
+  .home {
+    height: calc(100vh - 173px);
+  }
+}
+
 @media (max-width: 760px) {
   .home {
-    height: calc(100vh - 148px);
+    height: calc(100vh - 149px);
   }
 }

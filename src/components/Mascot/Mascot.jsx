@@ -3,9 +3,9 @@ export default function Mascot() {
     <svg className="mascot" viewBox="0 0 120 140" aria-hidden="true">
       <defs>
         <linearGradient id="flame-body" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffd23f" />
-          <stop offset="0.45" stopColor="#ff8a3d" />
-          <stop offset="1" stopColor="#ff3b30" />
+          <stop offset="0" stopColor="#ff8a3d" />
+          <stop offset="0.45" stopColor="#ff5a2b" />
+          <stop offset="1" stopColor="#e9212e" />
         </linearGradient>
         <linearGradient id="flame-inner" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#fff3c4" />
@@ -17,8 +17,8 @@ export default function Mascot() {
         <path d="M48 112 L46 128" />
         <path d="M70 112 L72 128" />
       </g>
-      <ellipse cx="44" cy="131" rx="10" ry="5" fill="#3fa66a" />
-      <ellipse cx="74" cy="131" rx="10" ry="5" fill="#3fa66a" />
+      <ellipse cx="44" cy="131" rx="10" ry="5" fill="#20242c" />
+      <ellipse cx="74" cy="131" rx="10" ry="5" fill="#20242c" />
       {/* waving arm */}
       <g className="mascot-arm">
         <path d="M88 78 Q104 66 106 48" stroke="#ff8a3d" strokeWidth="9" fill="none" strokeLinecap="round" />

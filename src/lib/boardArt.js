@@ -1,11 +1,15 @@
+// Drawing happens in a 1024 unit space; RES is the actual pixel size of the texture.
 const SIZE = 1024;
+const RES = 512;
 const cache = new Map();
 
 function ctx2d() {
   const c = document.createElement("canvas");
-  c.width = SIZE;
-  c.height = SIZE;
-  return [c, c.getContext("2d")];
+  c.width = RES;
+  c.height = RES;
+  const ctx = c.getContext("2d");
+  ctx.scale(RES / SIZE, RES / SIZE);
+  return [c, ctx];
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -199,20 +203,24 @@ function tilePalette(project) {
   ctx.fillStyle = project.ink;
   ctx.fillRect(0, 0, SIZE, SIZE);
   ctx.fillStyle = project.bg;
-  ctx.font = fontFor(project, 700, 40);
-  ctx.fillText("COLOUR SYSTEM", 64, 110);
-  const cols = 3, rows = 2, gap = 24;
-  const w = (SIZE - 128 - gap * (cols - 1)) / cols;
-  const h = (SIZE - 260 - gap) / rows;
+  ctx.font = fontFor(project, 700, 34);
+  ctx.fillText("COLOUR PALETTE", 56, 92);
+  ctx.textAlign = "right";
+  ctx.font = fontFor(project, 700, 30);
+  ctx.fillText(project.wordmark || project.title, SIZE - 56, 92);
+  ctx.textAlign = "left";
+  const n = project.palette.length;
+  const w = (SIZE - 112) / n;
   project.palette.forEach((hex, i) => {
-    const x = 64 + (i % cols) * (w + gap);
-    const y = 170 + Math.floor(i / cols) * (h + gap);
     ctx.fillStyle = hex;
-    roundRect(ctx, x, y, w, h, 18);
-    ctx.fill();
+    ctx.fillRect(56 + i * w, 140, w - 10, SIZE - 260);
+    ctx.save();
+    ctx.translate(56 + i * w + 14, SIZE - 88);
+    ctx.rotate(-Math.PI / 2);
     ctx.fillStyle = project.bg;
-    ctx.font = fontFor(project, 400, 26);
-    ctx.fillText(hex.toUpperCase(), x + 4, y + h + 34);
+    ctx.font = fontFor(project, 400, 24);
+    ctx.fillText(hex.toUpperCase(), 0, 0);
+    ctx.restore();
   });
   return c;
 }
@@ -241,79 +249,99 @@ function tileTagline(project) {
   return c;
 }
 
-function tileUI(project) {
+function tileUI(project, img) {
   const [c, ctx] = ctx2d();
   ctx.fillStyle = project.bg;
   ctx.fillRect(0, 0, SIZE, SIZE);
-  // browser chrome
-  ctx.fillStyle = project.ink + "14";
-  roundRect(ctx, 48, 48, SIZE - 96, SIZE - 96, 26);
+  const glow = ctx.createRadialGradient(SIZE / 2, SIZE * 0.42, 60, SIZE / 2, SIZE * 0.42, SIZE * 0.75);
+  glow.addColorStop(0, project.accent + "33");
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  // laptop lid
+  const lx = 132, ly = 168, lw = SIZE - 264, lh = lw * 0.62;
+  ctx.fillStyle = "#0c0c0e";
+  roundRect(ctx, lx - 18, ly - 18, lw + 36, lh + 36, 26);
   ctx.fill();
-  ctx.fillStyle = project.ink + "22";
-  roundRect(ctx, 48, 48, SIZE - 96, 84, 26);
+  ctx.save();
+  roundRect(ctx, lx, ly, lw, lh, 12);
+  ctx.clip();
+  if (img) {
+    const ar = img.width / img.height;
+    let dw = lw, dh = lh;
+    if (ar > lw / lh) dw = lh * ar;
+    else dh = lw / ar;
+    ctx.drawImage(img, lx + (lw - dw) / 2, ly + (lh - dh) / 2, dw, dh);
+  } else {
+    ctx.fillStyle = project.accent;
+    ctx.fillRect(lx, ly, lw, lh);
+  }
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.fillRect(lx, ly, lw, lh);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = fontFor(project, 800, 52);
+  ctx.fillText(project.wordmark || project.title, lx + 40, ly + 84);
+  ctx.restore();
+  // base
+  ctx.fillStyle = "#1a1a1f";
+  ctx.beginPath();
+  ctx.moveTo(lx - 60, ly + lh + 18);
+  ctx.lineTo(lx + lw + 60, ly + lh + 18);
+  ctx.lineTo(lx + lw + 96, ly + lh + 74);
+  ctx.lineTo(lx - 96, ly + lh + 74);
+  ctx.closePath();
   ctx.fill();
-  ["#ff5f57", "#febc2e", "#28c840"].forEach((col, i) => {
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.arc(96 + i * 44, 90, 14, 0, Math.PI * 2);
-    ctx.fill();
-  });
-  // nav
+  ctx.fillStyle = "#26262c";
+  roundRect(ctx, SIZE / 2 - 90, ly + lh + 26, 180, 22, 10);
+  ctx.fill();
+  // caption
   ctx.fillStyle = project.ink;
   ctx.font = fontFor(project, 700, 34);
-  ctx.fillText(project.wordmark || project.title, 96, 200);
-  ctx.fillStyle = project.accent;
-  roundRect(ctx, SIZE - 300, 168, 200, 52, 26);
-  ctx.fill();
-  ctx.fillStyle = project.bg;
-  ctx.font = fontFor(project, 700, 26);
-  ctx.fillText("Get started", SIZE - 268, 202);
-  // hero
-  ctx.fillStyle = project.ink;
-  ctx.font = fontFor(project, 800, 76);
-  ctx.fillText("Build something", 96, 340);
-  ctx.fillText("greater.", 96, 430);
+  ctx.fillText(project.wordmark || project.title, 96, SIZE - 96);
   ctx.fillStyle = project.ink + "88";
-  ctx.font = fontFor(project, 400, 30);
-  ctx.fillText(project.tagline, 96, 490);
-  // cards
-  const cw = (SIZE - 192 - 48) / 3;
-  for (let i = 0; i < 3; i++) {
-    const x = 96 + i * (cw + 24);
-    ctx.fillStyle = project.ink + "10";
-    roundRect(ctx, x, 560, cw, 300, 20);
-    ctx.fill();
-    ctx.fillStyle = project.palette[(i + 1) % project.palette.length];
-    roundRect(ctx, x + 24, 584, cw - 48, 120, 14);
-    ctx.fill();
-    drawMark(ctx, project.mark, x + cw / 2, 644, 64, project.bg);
-    ctx.fillStyle = project.ink + "55";
-    roundRect(ctx, x + 24, 730, cw - 48, 16, 8);
-    ctx.fill();
-    roundRect(ctx, x + 24, 760, (cw - 48) * 0.7, 16, 8);
-    ctx.fill();
-    roundRect(ctx, x + 24, 790, (cw - 48) * 0.5, 16, 8);
-    ctx.fill();
-  }
+  ctx.font = fontFor(project, 400, 26);
+  ctx.fillText(project.category.toUpperCase(), 96, SIZE - 52);
   return c;
 }
 
-function tilePattern(project) {
+function hashSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return () => {
+    h ^= h << 13;
+    h ^= h >>> 17;
+    h ^= h << 5;
+    return ((h >>> 0) % 1000) / 1000;
+  };
+}
+
+function tilePattern(project, img) {
   const [c, ctx] = ctx2d();
-  const g = ctx.createLinearGradient(0, 0, SIZE, SIZE);
-  g.addColorStop(0, project.bg);
-  g.addColorStop(0.55, project.palette[3] || project.bg);
-  g.addColorStop(1, project.accent);
-  ctx.fillStyle = g;
+  const rnd = hashSeed(project.slug);
+  ctx.fillStyle = project.bg;
   ctx.fillRect(0, 0, SIZE, SIZE);
-  ctx.globalAlpha = 0.16;
-  for (let y = 0; y < 4; y++) {
-    for (let x = 0; x < 4; x++) {
-      drawMark(ctx, project.mark, 128 + x * 256, 128 + y * 256, 120, project.ink);
+  const n = 6;
+  const s = SIZE / n;
+  const fills = [project.accent, project.ink, project.palette[3] || project.bg, project.bg];
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      const r = rnd();
+      if (img && r < 0.52) {
+        const sw = img.width / 3;
+        const sh = img.height / 3;
+        const sx = Math.floor(rnd() * 3) * sw;
+        const sy = Math.floor(rnd() * 3) * sh;
+        ctx.drawImage(img, sx, sy, sw, sh, x * s, y * s, s, s);
+      } else {
+        ctx.fillStyle = fills[Math.floor(rnd() * fills.length)];
+        ctx.fillRect(x * s, y * s, s, s);
+        if (rnd() < 0.3) drawMark(ctx, project.mark, x * s + s / 2, y * s + s / 2, s * 0.5, project.bg);
+      }
     }
   }
-  ctx.globalAlpha = 1;
-  drawMark(ctx, project.mark, SIZE / 2, SIZE / 2, 300, project.ink);
   return c;
 }
 
@@ -334,14 +362,9 @@ export async function getBoardTiles(project) {
     tileWordmark(project),
     tilePalette(project),
     tileTagline(project),
-    tileUI(project),
-    tilePattern(project),
+    tileUI(project, img),
+    tilePattern(project, img),
   ];
-  const urls = canvases.map((c) => c.toDataURL("image/jpeg", 0.9));
-  cache.set(project.slug, urls);
-  return urls;
-}
-
-export function peekBoardTiles(project) {
-  return cache.get(project.slug) || null;
+  cache.set(project.slug, canvases);
+  return canvases;
 }

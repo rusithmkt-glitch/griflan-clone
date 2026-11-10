@@ -10,11 +10,12 @@
 
 .navbar-full {
   display: grid;
-  grid-template-columns: 88px 88px 1fr 1.35fr 1fr 80px 80px;
-  grid-template-rows: 64px 126px;
+  grid-template-columns: 86px 86px 1fr 1fr 1fr 86px 86px;
+  grid-template-rows: 62px 64px 62px;
   grid-template-areas:
     "home about servicesTop brand taglineTop insta link"
-    "mascot mascot services brand tagline cta cta";
+    "mascot mascot services brand tagline cta cta"
+    "mascot mascot servicesBottom brand taglineBottom cta cta";
   border-bottom: 1px solid var(--line);
 }
 
@@ -34,6 +35,13 @@
   text-transform: uppercase;
   font-weight: 500;
   min-width: 0;
+  transition:
+    color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.cell:hover {
+  color: #eba7b4;
+  box-shadow: inset 1px 0 0 var(--violet);
 }
 
 .cell-home {
@@ -44,6 +52,14 @@
 }
 .cell-services-top {
   grid-area: servicesTop;
+}
+.cell-services-bottom {
+  grid-area: servicesBottom;
+  border-bottom: none;
+}
+.cell-tagline-bottom {
+  grid-area: taglineBottom;
+  border-bottom: none;
 }
 .cell-brand {
   grid-area: brand;
@@ -65,39 +81,57 @@
 }
 .cell-services {
   grid-area: services;
-  border-bottom: none;
   font-family: var(--font-serif);
-  font-size: 22px;
+  font-size: 21px;
   text-transform: none;
   letter-spacing: 0;
   font-weight: 400;
 }
 .cell-tagline {
   grid-area: tagline;
-  border-bottom: none;
   font-family: var(--font-serif);
-  font-size: 22px;
+  font-size: 21px;
   text-transform: none;
   letter-spacing: 0;
   font-weight: 400;
 }
 .cell-cta {
   grid-area: cta;
+  position: relative;
+  overflow: hidden;
   border-right: none;
   border-bottom: none;
   background: var(--accent);
   color: #fff;
   font-family: var(--font-serif);
-  font-size: 22px;
+  font-size: 21px;
   text-transform: none;
   letter-spacing: 0;
   font-weight: 400;
+  white-space: nowrap;
   transition: background 0.3s ease;
-  margin: 12px;
-  border-radius: 6px;
+  margin: 10px;
+  border-radius: 8px;
+}
+.cell-cta::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0;
+  border-color: transparent transparent var(--ink) transparent;
+  transition: border-width 0.25s ease;
 }
 .cell-cta:hover {
   background: var(--accent-deep);
+  color: #fff;
+  box-shadow: none;
+}
+.cell-cta:hover::after {
+  border-width: 0 0 26px 26px;
 }
 
 .cell-home:hover,
@@ -105,16 +139,16 @@
 .cell-insta:hover,
 .cell-link:hover {
   background: var(--surface);
-  color: var(--amber);
+  color: #eba7b4;
 }
 .cell-home.is-current,
 .cell-about.is-current {
-  color: var(--amber);
+  color: var(--ink);
 }
 
 /* brand wordmark + hover gradient sweep */
 .brand-text {
-  font-size: clamp(24px, 3.6vw, 56px);
+  font-size: clamp(24px, 3.3vw, 63px);
   font-weight: 700;
   letter-spacing: -0.045em;
   line-height: 1;
@@ -337,12 +371,15 @@
 @media (max-width: 1100px) {
   .navbar-full {
     grid-template-columns: 70px 70px 1fr 1.3fr 70px 70px;
+    grid-template-rows: 56px 60px 56px;
     grid-template-areas:
       "home about servicesTop brand insta link"
-      "mascot mascot services brand cta cta";
+      "mascot mascot services brand cta cta"
+      "mascot mascot servicesBottom brand cta cta";
   }
   .cell-tagline,
-  .cell-tagline-top {
+  .cell-tagline-top,
+  .cell-tagline-bottom {
     display: none;
   }
   .cell-services {
@@ -357,16 +394,18 @@
 @media (max-width: 760px) {
   .navbar-full {
     grid-template-columns: 60px 60px 1fr 96px;
-    grid-template-rows: 52px 96px;
+    grid-template-rows: 48px 50px 50px;
     grid-template-areas:
       "home about brand cta"
-      "mascot mascot services cta";
+      "mascot mascot services cta"
+      "mascot mascot servicesBottom cta";
   }
   .cell-services-top,
   .cell-insta,
   .cell-link,
   .cell-tagline,
-  .cell-tagline-top {
+  .cell-tagline-top,
+  .cell-tagline-bottom {
     display: none;
   }
   .cell-brand .brand-text {
@@ -378,6 +417,10 @@
   .cell-cta {
     font-size: 14px;
     margin: 8px;
+    white-space: normal;
+    line-height: 1.25;
+    text-align: center;
+    padding: 4px;
   }
   .mascot {
     width: 52px;

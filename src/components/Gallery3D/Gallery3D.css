@@ -1,11 +1,11 @@
 .gallery3d-container {
   position: relative;
   width: 100%;
-  height: calc(100vh - 190px);
+  height: calc(100vh - 189px);
   min-height: 480px;
   overflow: hidden;
-  background: #111111;
-  cursor: grab;
+  background: #171516;
+  cursor: default;
   touch-action: none;
 }
 
@@ -21,7 +21,7 @@
 
 .gallery-coord {
   position: absolute;
-  top: 64px;
+  top: 72px;
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.08em;
@@ -30,40 +30,10 @@
   z-index: 5;
 }
 .gallery-coord-left {
-  left: 44px;
+  left: 42px;
 }
 .gallery-coord-right {
-  right: 44px;
-}
-
-.gallery-hint {
-  position: absolute;
-  left: 50%;
-  bottom: 96px;
-  transform: translateX(-50%);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
-  background: rgba(17, 17, 17, 0.6);
-  border: 1px solid var(--line-soft);
-  border-radius: 999px;
-  padding: 10px 18px;
-  pointer-events: none;
-  backdrop-filter: blur(6px);
-  animation: hint-pulse 2.6s ease-in-out infinite;
-  z-index: 5;
-  white-space: nowrap;
-}
-@keyframes hint-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
+  right: 42px;
 }
 
 .gallery3d-fallback {
@@ -71,7 +41,7 @@
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
   padding: 32px;
-  height: calc(100vh - 190px);
+  height: calc(100vh - 189px);
   overflow-y: auto;
 }
 .fallback-card {
@@ -95,21 +65,22 @@
   color: var(--ink-dim);
 }
 
+@media (max-width: 1100px) {
+  .gallery3d-container,
+  .gallery3d-fallback {
+    height: calc(100vh - 173px);
+  }
+}
+
 @media (max-width: 760px) {
   .gallery3d-container,
   .gallery3d-fallback {
-    height: calc(100vh - 148px);
+    height: calc(100vh - 149px);
   }
   .gallery-coord-left {
     left: 16px;
   }
   .gallery-coord-right {
     right: 16px;
-  }
-  .gallery-hint {
-    font-size: 10px;
-    white-space: normal;
-    text-align: center;
-    width: 80vw;
   }
 }
