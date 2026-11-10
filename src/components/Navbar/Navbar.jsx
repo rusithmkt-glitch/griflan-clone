@@ -11,12 +11,16 @@ import "./Navbar.css";
 function Brand() {
   return (
     <span className="brand-text">
-      Griflan<em>Labs</em>
+      Grow<em>Beyond</em>
     </span>
   );
 }
 
-export default function Navbar({ variant = "full", project = null, sticky = false }) {
+export default function Navbar({
+  variant = "full",
+  project = null,
+  sticky = false,
+}) {
   const { openContact } = useSite();
   const pathname = usePathname();
   const [switcher, setSwitcher] = useState(false);
@@ -55,13 +59,20 @@ export default function Navbar({ variant = "full", project = null, sticky = fals
           <Link href="/" className={pathname === "/" ? "is-current" : ""}>
             Home
           </Link>
-          <Link href="/about" className={pathname === "/about" ? "is-current" : ""}>
+          <Link
+            href="/about"
+            className={pathname === "/about" ? "is-current" : ""}
+          >
             About
           </Link>
         </nav>
 
         <div className="compact-pill">
-          <Link href="/" className="compact-brand" aria-label="Griflan Labs home">
+          <Link
+            href="/"
+            className="compact-brand"
+            aria-label="Griflan Labs home"
+          >
             <Brand />
           </Link>
           {project && (
@@ -74,11 +85,18 @@ export default function Navbar({ variant = "full", project = null, sticky = fals
               >
                 <span>{project.title}</span>
                 <svg viewBox="0 0 16 16" className="funnel" aria-hidden="true">
-                  <path d="M2 3h12l-4.5 5.5V13L6.5 14V8.5L2 3z" fill="currentColor" />
+                  <path
+                    d="M2 3h12l-4.5 5.5V13L6.5 14V8.5L2 3z"
+                    fill="currentColor"
+                  />
                 </svg>
               </button>
               {switcher && (
-                <div className="switcher" role="listbox" aria-label="Jump to project">
+                <div
+                  className="switcher"
+                  role="listbox"
+                  aria-label="Jump to project"
+                >
                   {projects.map((p) => (
                     <Link
                       key={p.slug}
@@ -87,7 +105,10 @@ export default function Navbar({ variant = "full", project = null, sticky = fals
                       role="option"
                       aria-selected={p.slug === project.slug}
                     >
-                      <span className="switcher-dot" style={{ background: p.accent }} />
+                      <span
+                        className="switcher-dot"
+                        style={{ background: p.accent }}
+                      />
                       <span className="switcher-name">{p.title}</span>
                       <span className="switcher-cat">{p.category}</span>
                     </Link>
@@ -115,10 +136,16 @@ export default function Navbar({ variant = "full", project = null, sticky = fals
 
   return (
     <header className={`navbar navbar-full ${sticky ? "is-sticky" : ""}`}>
-      <Link href="/" className={`cell cell-home ${pathname === "/" ? "is-current" : ""}`}>
+      <Link
+        href="/"
+        className={`cell cell-home ${pathname === "/" ? "is-current" : ""}`}
+      >
         Home
       </Link>
-      <Link href="/about" className={`cell cell-about ${pathname === "/about" ? "is-current" : ""}`}>
+      <Link
+        href="/about"
+        className={`cell cell-about ${pathname === "/about" ? "is-current" : ""}`}
+      >
         About
       </Link>
       <div className="cell cell-services-top" aria-hidden="true" />
@@ -128,10 +155,20 @@ export default function Navbar({ variant = "full", project = null, sticky = fals
         </Link>
       </div>
       <div className="cell cell-tagline-top" aria-hidden="true" />
-      <a className="cell cell-insta" href="https://instagram.com" target="_blank" rel="noreferrer">
+      <a
+        className="cell cell-insta"
+        href="https://instagram.com"
+        target="_blank"
+        rel="noreferrer"
+      >
         Insta
       </a>
-      <a className="cell cell-link" href="https://linkedin.com" target="_blank" rel="noreferrer">
+      <a
+        className="cell cell-link"
+        href="https://linkedin.com"
+        target="_blank"
+        rel="noreferrer"
+      >
         Link
       </a>
 
