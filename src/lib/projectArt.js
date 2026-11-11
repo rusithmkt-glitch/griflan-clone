@@ -1,7 +1,5 @@
 import { drawMark } from "./boardArt";
 
-const cache = new Map();
-
 function canvas(w, h) {
   const c = document.createElement("canvas");
   c.width = w;
@@ -328,43 +326,84 @@ function loadImage(src) {
   });
 }
 
-export function getMasonry(project) {
-  // cache the promise so concurrent callers share one generation run
-  if (!cache.has(project.slug)) {
-    cache.set(
+const artCache = new Map();
+const masonryCache = new Map();
+const boardCache = new Map();
+
+const MAKERS = [
+  photoPortrait,
+  wordmarkSquare,
+  palettePortrait,
+  taglineLandscape,
+  uiPortrait,
+  patternSquare,
+  photoLandscape,
+  typePortrait,
+  markGridLandscape,
+  bandsLandscape,
+  quoteSquare,
+  photoTall,
+];
+
+// Raw artefact canvases, generated once per project and shared by the detail
+// page and the 3D floor cards so both surfaces show identical imagery.
+export function getArtTiles(project) {
+  if (!artCache.has(project.slug)) {
+    artCache.set(
       project.slug,
       (async () => {
         const img = await loadImage(project.image);
-        const makers = [
-          photoPortrait,
-          wordmarkSquare,
-          palettePortrait,
-          taglineLandscape,
-          uiPortrait,
-          patternSquare,
-          photoLandscape,
-          typePortrait,
-          markGridLandscape,
-          bandsLandscape,
-          quoteSquare,
-          photoTall,
-        ];
         const tiles = [];
-        for (let i = 0; i < makers.length; i++) {
-          const [c, w, h, caption] = makers[i](project, img);
-          tiles.push({
-            src: c.toDataURL("image/jpeg", 0.88),
-            w,
-            h,
-            caption,
-            index: i + 1,
-          });
-          // yield between tiles so encoding never blocks a frame
+        for (let i = 0; i < MAKERS.length; i++) {
+          const [c, w, h, caption] = MAKERS[i](project, img);
+          tiles.push({ canvas: c, w, h, caption, index: i + 1 });
+          // yield between tiles so drawing never blocks a frame
           await new Promise((r) => setTimeout(r, 0));
         }
         return tiles;
       })(),
     );
   }
-  return cache.get(project.slug);
+  return artCache.get(project.slug);
+}
+
+export function getMasonry(project) {
+  if (!masonryCache.has(project.slug)) {
+    masonryCache.set(
+      project.slug,
+      (async () => {
+        const tiles = await getArtTiles(project);
+        const out = [];
+        for (const t of tiles) {
+          out.push({
+            src: t.canvas.toDataURL("image/jpeg", 0.88),
+            w: t.w,
+            h: t.h,
+            caption: t.caption,
+            index: t.index,
+          });
+          // yield between tiles so encoding never blocks a frame
+          await new Promise((r) => setTimeout(r, 0));
+        }
+        return out;
+      })(),
+    );
+  }
+  return masonryCache.get(project.slug);
+}
+
+// Six detail-page artefacts chosen for the floor collage, in slot order:
+// [wide, square, square, square, square, wide]. These are the same canvases
+// getMasonry encodes, so a card previews exactly what its detail page shows.
+export function getBoardTiles(project) {
+  if (!boardCache.has(project.slug)) {
+    boardCache.set(
+      project.slug,
+      (async () => {
+        const t = await getArtTiles(project);
+        return [t[6], t[5], t[10], t[1], t[0], t[8]];
+      })(),
+    );
+  }
+  return boardCache.get(project.slug);
 }

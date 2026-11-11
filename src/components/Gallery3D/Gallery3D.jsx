@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import projects from "@/data/projects";
-import { getBoardTiles } from "@/lib/boardArt";
+import { getBoardTiles } from "@/lib/projectArt";
 import "./Gallery3D.css";
 
 const CELL = 2;
-const BOARD_COLS = 3;
-const BOARD_ROWS = 2;
-const PITCH_X = 4 * CELL;
-const PITCH_Z = 8;
+// Boards span 4x2 cells with a 1-cell gap in x and a 2-cell gap in z, so every
+// tile edge lands on a background grid line (a multiple of CELL).
+const PITCH_X = 5 * CELL;
+const PITCH_Z = 4 * CELL;
 const GRID_COLS = 6;
 const GRID_ROWS = 6;
 const PERIOD_X = PITCH_X * GRID_COLS;
@@ -21,12 +21,42 @@ const CURVE_R = 60;
 const HALF = CELL / 2;
 const HIGHLIGHT_COLORS = ["#a78bfa", "#d0527c", "#35e07a", "#ffb347"];
 
+// Editorial collage: six tiles per board [wide, square, square, square, square,
+// wide]. x/z are tile centres in board-local space, w/h are world units; every
+// edge is a multiple of CELL so tiles share the floor's grid lines. Three
+// arrangements keep the floor varied while each project keeps one identity.
+const LAYOUTS = [
+  [
+    { x: -2, z: -1, w: 4, h: 2 },
+    { x: 1, z: -1, w: 2, h: 2 },
+    { x: 3, z: -1, w: 2, h: 2 },
+    { x: -3, z: 1, w: 2, h: 2 },
+    { x: -1, z: 1, w: 2, h: 2 },
+    { x: 2, z: 1, w: 4, h: 2 },
+  ],
+  [
+    { x: 2, z: -1, w: 4, h: 2 },
+    { x: -1, z: -1, w: 2, h: 2 },
+    { x: -3, z: -1, w: 2, h: 2 },
+    { x: 3, z: 1, w: 2, h: 2 },
+    { x: 1, z: 1, w: 2, h: 2 },
+    { x: -2, z: 1, w: 4, h: 2 },
+  ],
+  [
+    { x: 0, z: -1, w: 4, h: 2 },
+    { x: -3, z: -1, w: 2, h: 2 },
+    { x: 3, z: -1, w: 2, h: 2 },
+    { x: 1, z: 1, w: 2, h: 2 },
+    { x: 3, z: 1, w: 2, h: 2 },
+    { x: -2, z: 1, w: 4, h: 2 },
+  ],
+];
+
 const DRIFT_SPEED = 0.9;
 const DRAG_SCALE = 0.02;
 // Damping rates are per-second so motion feels identical at any refresh rate.
 const DAMP_CAM = 4.7;
 const DAMP_DRIFT = 1.2;
-const DAMP_LIFT = 7.7;
 const DAMP_HIT = 7.7;
 const DAMP_APPEAR = 3.5;
 const FLING_DECAY = 2.6;
@@ -161,14 +191,25 @@ export default function Gallery3D({ onOpen }) {
 
     // boards (textures are generated once per project and shared across its instances)
     const texCache = new Map();
+    const geoCache = new Map();
     const boards = [];
     const pickMeshes = [];
-    const tileGeo = new THREE.PlaneGeometry(CELL, CELL);
-    tileGeo.rotateX(-Math.PI / 2);
-    geometries.push(tileGeo);
+
+    function tileGeometry(w, h) {
+      const key = `${w}x${h}`;
+      let geo = geoCache.get(key);
+      if (!geo) {
+        geo = new THREE.PlaneGeometry(w, h);
+        geo.rotateX(-Math.PI / 2);
+        geoCache.set(key, geo);
+        geometries.push(geo);
+      }
+      return geo;
+    }
 
     for (let slot = 0; slot < GRID_COLS * GRID_ROWS; slot++) {
       const project = projects[slot % projects.length];
+      const layout = LAYOUTS[(project.id - 1) % LAYOUTS.length];
       const group = new THREE.Group();
       const baseX = (slot % GRID_COLS) * PITCH_X;
       const baseZ = Math.floor(slot / GRID_COLS) * PITCH_Z;
@@ -176,7 +217,6 @@ export default function Gallery3D({ onOpen }) {
         project,
         baseX,
         baseZ,
-        lift: 0,
         appear: 0,
         ready: false,
         appearAt: 0,
@@ -184,32 +224,42 @@ export default function Gallery3D({ onOpen }) {
       scene.add(group);
       boards.push(group);
 
-      getBoardTiles(project).then((canvases) => {
+      getBoardTiles(project).then((tiles) => {
         if (disposed) return;
         let texSet = texCache.get(project.slug);
         if (!texSet) {
-          texSet = canvases.map((c) => {
-            const tex = new THREE.CanvasTexture(c);
+          texSet = tiles.map((tile, i) => {
+            const tex = new THREE.CanvasTexture(tile.canvas);
             tex.colorSpace = THREE.SRGBColorSpace;
             tex.anisotropy = Math.min(
               8,
               renderer.capabilities.getMaxAnisotropy(),
             );
+            // centre-crop the shared detail-page image to this slot's aspect
+            // via UVs, so the card reuses the exact same asset, undistorted
+            const slotA = layout[i].w / layout[i].h;
+            const srcA = tile.w / tile.h;
+            if (srcA > slotA) {
+              tex.repeat.x = slotA / srcA;
+              tex.offset.x = (1 - tex.repeat.x) / 2;
+            } else if (srcA < slotA) {
+              tex.repeat.y = srcA / slotA;
+              tex.offset.y = (1 - tex.repeat.y) / 2;
+            }
             textures.push(tex);
             return tex;
           });
           texCache.set(project.slug, texSet);
         }
-        canvases.forEach((_, t) => {
-          const col = t % BOARD_COLS;
-          const row = Math.floor(t / BOARD_COLS);
+        tiles.forEach((_, t) => {
+          const r = layout[t];
           const mat = new THREE.MeshBasicMaterial({
             map: texSet[t],
             transparent: true,
             opacity: 0,
           });
-          const mesh = new THREE.Mesh(tileGeo, mat);
-          mesh.position.set((col - 1) * CELL, 0.02, (row - 0.5) * CELL);
+          const mesh = new THREE.Mesh(tileGeometry(r.w, r.h), mat);
+          mesh.position.set(r.x, 0.02, r.z);
           mesh.userData.board = group;
           group.add(mesh);
           pickMeshes.push(mesh);
@@ -430,8 +480,6 @@ export default function Gallery3D({ onOpen }) {
         const bz = wrap(ud.baseZ, cam.z, PERIOD_Z);
         const lx = bx - cam.x;
         const lz = bz - cam.z;
-        ud.lift = damp(ud.lift, hovered === group ? 0.5 : 0, DAMP_LIFT, dt);
-        const lift = ud.lift;
         ud.appear = damp(
           ud.appear,
           ud.ready && now >= ud.appearAt ? 1 : 0,
@@ -444,11 +492,7 @@ export default function Gallery3D({ onOpen }) {
         up.crossVectors(south, east).normalize();
         basis.makeBasis(east, up, south);
         group.quaternion.setFromRotationMatrix(basis);
-        group.position.set(
-          bx + up.x * lift,
-          surfaceY(lx, lz) + up.y * lift,
-          bz + up.z * lift,
-        );
+        group.position.set(bx, surfaceY(lx, lz), bz);
         const dist = camera.position.distanceTo(group.position);
         const t = Math.min(Math.max((dist - 14) / 9, 0), 1);
         const fade = 1 - t * t * (3 - 2 * t);
