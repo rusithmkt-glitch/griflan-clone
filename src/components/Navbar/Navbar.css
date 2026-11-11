@@ -451,6 +451,7 @@
     min-width: 0;
     gap: 8px;
     padding: 8px 10px;
+    font-size: 13px;
   }
   .compact-project-btn > span {
     min-width: 0;
@@ -470,9 +471,6 @@
   }
   .compact-brand .brand-text {
     font-size: 18px;
-  }
-  .compact-project-btn {
-    font-size: 13px;
   }
 }
 
