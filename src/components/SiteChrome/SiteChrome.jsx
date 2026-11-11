@@ -24,7 +24,8 @@ export default function SiteChrome({ children }) {
       <Navbar
         variant={isProject ? "compact" : "full"}
         project={project}
-        sticky={!isHome && !isProject}
+        sticky={!isProject}
+        collapse={!isHome}
       />
       {children}
       <ContactOverlay open={contactOpen} onClose={closeContact} />

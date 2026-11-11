@@ -106,7 +106,7 @@ const gridFragment = /* glsl */ `
   }
 `;
 
-export default function Gallery3D({ onOpen }) {
+export default function Gallery3D({ onOpen, flyRef }) {
   const containerRef = useRef(null);
   const leftRef = useRef(null);
   const rightRef = useRef(null);
@@ -289,11 +289,11 @@ export default function Gallery3D({ onOpen }) {
     let velX = 0;
     let velZ = 0;
     let lastFrame = performance.now();
-    let drift = 0;
     let rect = container.getBoundingClientRect();
     let pointerDirty = true;
     let lastCast = 0;
     let lastCoord = 0;
+    let drift = 0;
     const reduceMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -365,25 +365,6 @@ export default function Gallery3D({ onOpen }) {
       velZ = 0;
       container.classList.remove("is-dragging");
     }
-    function onWheel(e) {
-      e.preventDefault();
-      let dx = e.deltaX;
-      let dy = e.deltaY;
-      if (e.deltaMode === 1) {
-        dx *= 16;
-        dy *= 16;
-      } else if (e.deltaMode === 2) {
-        dx *= rect.width;
-        dy *= rect.height;
-      }
-      dx = Math.max(-180, Math.min(180, dx));
-      dy = Math.max(-180, Math.min(180, dy));
-      velX = 0;
-      velZ = 0;
-      target.x += dx * 0.012;
-      target.z += dy * 0.012;
-      lastMove = performance.now();
-    }
     function onKey(e) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target;
@@ -419,7 +400,6 @@ export default function Gallery3D({ onOpen }) {
     container.addEventListener("pointerup", onPointerUp);
     container.addEventListener("pointercancel", onPointerCancel);
     container.addEventListener("pointerleave", onPointerLeave);
-    container.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("keydown", onKey);
     window.addEventListener("scroll", updateRect, { passive: true });
 
@@ -459,6 +439,8 @@ export default function Gallery3D({ onOpen }) {
         if (Math.abs(velX) < 0.01) velX = 0;
         if (Math.abs(velZ) < 0.01) velZ = 0;
       }
+      // continuous auto-flyover: the floor keeps drifting forward on its own,
+      // paused while dragging or during a fast fling (and for reduced motion).
       const speed = Math.hypot(velX, velZ);
       const driftWant =
         reduceMotion || dragging
@@ -468,18 +450,22 @@ export default function Gallery3D({ onOpen }) {
       target.z += drift * dt;
       cam.x = damp(cam.x, target.x, DAMP_CAM, dt);
       cam.z = damp(cam.z, target.z, DAMP_CAM, dt);
+      // unbounded scroll travel flies the camera forward over the floor on top
+      // of the auto-drift; dragging pans on top of both.
+      const fly = flyRef ? flyRef.current : 0;
+      const cz = cam.z + fly;
 
-      camera.position.set(cam.x, CAM_Y, cam.z);
-      camera.lookAt(cam.x, -9.2, cam.z - 10.8);
+      camera.position.set(cam.x, CAM_Y, cz);
+      camera.lookAt(cam.x, -9.2, cz - 10.8);
 
-      grid.position.set(cam.x, 0, cam.z);
+      grid.position.set(cam.x, 0, cz);
 
       for (const group of boards) {
         const ud = group.userData;
         const bx = wrap(ud.baseX, cam.x, PERIOD_X);
-        const bz = wrap(ud.baseZ, cam.z, PERIOD_Z);
+        const bz = wrap(ud.baseZ, cz, PERIOD_Z);
         const lx = bx - cam.x;
-        const lz = bz - cam.z;
+        const lz = bz - cz;
         ud.appear = damp(
           ud.appear,
           ud.ready && now >= ud.appearAt ? 1 : 0,
@@ -541,7 +527,7 @@ export default function Gallery3D({ onOpen }) {
       if (now - lastCoord > 120) {
         lastCoord = now;
         if (leftRef.current)
-          leftRef.current.textContent = (91.737275 - cam.z * 1.3).toFixed(6);
+          leftRef.current.textContent = (91.737275 - cz * 1.3).toFixed(6);
         if (rightRef.current)
           rightRef.current.textContent = (cam.x * 1.7 - 30.166021).toFixed(6);
       }
@@ -559,7 +545,6 @@ export default function Gallery3D({ onOpen }) {
       container.removeEventListener("pointerup", onPointerUp);
       container.removeEventListener("pointercancel", onPointerCancel);
       container.removeEventListener("pointerleave", onPointerLeave);
-      container.removeEventListener("wheel", onWheel);
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("scroll", updateRect);
       textures.forEach((t) => t.dispose());
@@ -569,7 +554,7 @@ export default function Gallery3D({ onOpen }) {
       if (renderer.domElement.parentNode === container)
         container.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [flyRef]);
 
   if (fallback) {
     return (

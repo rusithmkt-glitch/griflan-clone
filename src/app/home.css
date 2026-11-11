@@ -1,7 +1,33 @@
 .home {
   position: relative;
+}
+
+/* Sticky globe stage: fills the viewport below the sticky navbar and stays put
+   while the tall scroll spacer drives the infinite flyover. The page.js loop
+   recenters the scroll before it reaches either end, so this never unsticks. */
+.globe-section {
+  position: sticky;
+  top: 189px;
   height: calc(100vh - 189px);
   overflow: hidden;
+}
+
+/* Scroll runway. Its only job is to give the document enough height to scroll;
+   the recentering loop wraps the position so the travel never ends. */
+.scroll-spacer {
+  height: 400vh;
+  pointer-events: none;
+}
+
+/* The flyover is infinite, so a finite scrollbar thumb would be misleading.
+   Hide it on the home route only; project pages keep their normal scrollbar. */
+html.home-infinite {
+  scrollbar-width: none;
+}
+html.home-infinite::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .home-veil {
@@ -18,13 +44,15 @@
 }
 
 @media (max-width: 1100px) {
-  .home {
+  .globe-section {
+    top: 173px;
     height: calc(100vh - 173px);
   }
 }
 
 @media (max-width: 760px) {
-  .home {
+  .globe-section {
+    top: 149px;
     height: calc(100vh - 149px);
   }
 }

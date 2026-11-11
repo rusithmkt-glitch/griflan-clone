@@ -1,12 +1,12 @@
 .gallery3d-container {
   position: relative;
   width: 100%;
-  height: calc(100vh - 189px);
-  min-height: 480px;
+  height: 100%;
   overflow: hidden;
   background: #171516;
   cursor: default;
-  touch-action: none;
+  /* vertical swipes scroll the page (driving the flyover); horizontal drags pan */
+  touch-action: pan-y;
 }
 
 .gallery3d-container.is-dragging {
@@ -66,14 +66,12 @@
 }
 
 @media (max-width: 1100px) {
-  .gallery3d-container,
   .gallery3d-fallback {
     height: calc(100vh - 173px);
   }
 }
 
 @media (max-width: 760px) {
-  .gallery3d-container,
   .gallery3d-fallback {
     height: calc(100vh - 149px);
   }

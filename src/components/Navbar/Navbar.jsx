@@ -20,6 +20,7 @@ export default function Navbar({
   variant = "full",
   project = null,
   sticky = false,
+  collapse = true,
 }) {
   const { openContact } = useSite();
   const pathname = usePathname();
@@ -32,14 +33,14 @@ export default function Navbar({
   }, [pathname]);
 
   useEffect(() => {
-    if (!sticky) return;
+    if (!sticky || !collapse) return;
     function onScroll() {
       setScrolled(window.scrollY > 60);
     }
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [sticky]);
+  }, [sticky, collapse]);
 
   useEffect(() => {
     if (!switcher) return;
@@ -50,7 +51,7 @@ export default function Navbar({
     return () => window.removeEventListener("pointerdown", down);
   }, [switcher]);
 
-  const compact = variant === "compact" || (sticky && scrolled);
+  const compact = variant === "compact" || (sticky && collapse && scrolled);
 
   if (compact) {
     return (
