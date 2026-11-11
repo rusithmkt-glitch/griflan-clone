@@ -21,6 +21,21 @@ const CURVE_R = 60;
 const HALF = CELL / 2;
 const HIGHLIGHT_COLORS = ["#a78bfa", "#d0527c", "#35e07a", "#ffb347"];
 
+const DRIFT_SPEED = 0.9;
+const DRAG_SCALE = 0.02;
+// Damping rates are per-second so motion feels identical at any refresh rate.
+const DAMP_CAM = 4.7;
+const DAMP_DRIFT = 1.2;
+const DAMP_LIFT = 7.7;
+const DAMP_HIT = 7.7;
+const DAMP_APPEAR = 3.5;
+const FLING_DECAY = 2.6;
+const MAX_FLING = 40;
+
+function damp(cur, want, lambda, dt) {
+  return cur + (want - cur) * (1 - Math.exp(-lambda * dt));
+}
+
 function surfaceY(lx, lz) {
   return -(lx * lx + lz * lz) / (2 * CURVE_R);
 }
@@ -67,12 +82,15 @@ export default function Gallery3D({ onOpen }) {
   const rightRef = useRef(null);
   const [fallback, setFallback] = useState(false);
   const onOpenRef = useRef(onOpen);
-  onOpenRef.current = onOpen;
+  useEffect(() => {
+    onOpenRef.current = onOpen;
+  }, [onOpen]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
+    let disposed = false;
     let renderer;
     try {
       renderer = new THREE.WebGLRenderer({
@@ -80,11 +98,12 @@ export default function Gallery3D({ onOpen }) {
         powerPreference: "high-performance",
       });
     } catch {
-      setFallback(true);
+      queueMicrotask(() => {
+        if (!disposed) setFallback(true);
+      });
       return;
     }
 
-    let disposed = false;
     let raf = 0;
     const textures = [];
     const geometries = [];
@@ -144,13 +163,24 @@ export default function Gallery3D({ onOpen }) {
     const texCache = new Map();
     const boards = [];
     const pickMeshes = [];
+    const tileGeo = new THREE.PlaneGeometry(CELL, CELL);
+    tileGeo.rotateX(-Math.PI / 2);
+    geometries.push(tileGeo);
 
     for (let slot = 0; slot < GRID_COLS * GRID_ROWS; slot++) {
       const project = projects[slot % projects.length];
       const group = new THREE.Group();
       const baseX = (slot % GRID_COLS) * PITCH_X;
       const baseZ = Math.floor(slot / GRID_COLS) * PITCH_Z;
-      group.userData = { project, baseX, baseZ, lift: 0 };
+      group.userData = {
+        project,
+        baseX,
+        baseZ,
+        lift: 0,
+        appear: 0,
+        ready: false,
+        appearAt: 0,
+      };
       scene.add(group);
       boards.push(group);
 
@@ -173,20 +203,21 @@ export default function Gallery3D({ onOpen }) {
         canvases.forEach((_, t) => {
           const col = t % BOARD_COLS;
           const row = Math.floor(t / BOARD_COLS);
-          const geo = new THREE.PlaneGeometry(CELL, CELL);
-          geo.rotateX(-Math.PI / 2);
           const mat = new THREE.MeshBasicMaterial({
             map: texSet[t],
             transparent: true,
+            opacity: 0,
           });
-          const mesh = new THREE.Mesh(geo, mat);
+          const mesh = new THREE.Mesh(tileGeo, mat);
           mesh.position.set((col - 1) * CELL, 0.02, (row - 0.5) * CELL);
           mesh.userData.board = group;
           group.add(mesh);
           pickMeshes.push(mesh);
-          geometries.push(geo);
           materials.push(mat);
         });
+        group.userData.ready = true;
+        group.userData.appearAt =
+          performance.now() + (slot % projects.length) * 45;
       });
     }
 
@@ -200,70 +231,147 @@ export default function Gallery3D({ onOpen }) {
     let lastMove = -1e9;
     let hovered = null;
     let dragging = false;
+    let dragId = null;
     let moved = 0;
     let lastX = 0;
     let lastY = 0;
+    let lastMoveT = 0;
+    let velX = 0;
+    let velZ = 0;
     let lastFrame = performance.now();
     let drift = 0;
+    let rect = container.getBoundingClientRect();
+    let pointerDirty = true;
+    let lastCast = 0;
+    let lastCoord = 0;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    function updateRect() {
+      rect = container.getBoundingClientRect();
+    }
 
     function onPointerDown(e) {
+      if (dragId !== null) return;
+      dragId = e.pointerId;
       dragging = true;
       moved = 0;
+      velX = 0;
+      velZ = 0;
       lastX = e.clientX;
       lastY = e.clientY;
-      container.setPointerCapture?.(e.pointerId);
+      lastMoveT = performance.now();
+      updateRect();
+      try {
+        container.setPointerCapture(e.pointerId);
+      } catch {}
       container.classList.add("is-dragging");
     }
     function onPointerMove(e) {
-      const rect = container.getBoundingClientRect();
       pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      pointerDirty = true;
       lastMove = performance.now();
-      if (dragging) {
-        const dx = e.clientX - lastX;
-        const dy = e.clientY - lastY;
-        moved += Math.abs(dx) + Math.abs(dy);
-        target.x -= dx * 0.02;
-        target.z -= dy * 0.02;
-        lastX = e.clientX;
-        lastY = e.clientY;
+      if (!dragging || e.pointerId !== dragId) return;
+      const now = performance.now();
+      const dt = Math.max((now - lastMoveT) / 1000, 1 / 240);
+      lastMoveT = now;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      moved += Math.abs(dx) + Math.abs(dy);
+      const wx = -dx * DRAG_SCALE;
+      const wz = -dy * DRAG_SCALE;
+      target.x += wx;
+      target.z += wz;
+      // track fling velocity, smoothed across move events
+      velX += (wx / dt - velX) * 0.4;
+      velZ += (wz / dt - velZ) * 0.4;
+      const speed = Math.hypot(velX, velZ);
+      if (speed > MAX_FLING) {
+        velX = (velX / speed) * MAX_FLING;
+        velZ = (velZ / speed) * MAX_FLING;
       }
+      lastX = e.clientX;
+      lastY = e.clientY;
     }
     function onPointerUp(e) {
+      if (e.pointerId !== dragId) return;
       container.classList.remove("is-dragging");
       const wasDrag = moved > 6;
       dragging = false;
-      if (!wasDrag && hovered) {
-        onOpenRef.current?.(hovered.userData.project.slug);
+      dragId = null;
+      if (!wasDrag) {
+        velX = 0;
+        velZ = 0;
+        if (hovered) onOpenRef.current?.(hovered.userData.project.slug);
       }
+    }
+    function onPointerCancel(e) {
+      if (e.pointerId !== dragId) return;
+      dragging = false;
+      dragId = null;
+      velX = 0;
+      velZ = 0;
+      container.classList.remove("is-dragging");
     }
     function onWheel(e) {
       e.preventDefault();
-      target.z += e.deltaY * 0.012;
-      target.x += e.deltaX * 0.012;
+      let dx = e.deltaX;
+      let dy = e.deltaY;
+      if (e.deltaMode === 1) {
+        dx *= 16;
+        dy *= 16;
+      } else if (e.deltaMode === 2) {
+        dx *= rect.width;
+        dy *= rect.height;
+      }
+      dx = Math.max(-180, Math.min(180, dx));
+      dy = Math.max(-180, Math.min(180, dy));
+      velX = 0;
+      velZ = 0;
+      target.x += dx * 0.012;
+      target.z += dy * 0.012;
       lastMove = performance.now();
     }
     function onKey(e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target;
+      if (
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.tagName === "SELECT" ||
+          t.isContentEditable)
+      )
+        return;
       const step = 1.4;
       if (e.key === "ArrowUp" || e.key === "w") target.z -= step;
       else if (e.key === "ArrowDown" || e.key === "s") target.z += step;
       else if (e.key === "ArrowLeft" || e.key === "a") target.x -= step;
       else if (e.key === "ArrowRight" || e.key === "d") target.x += step;
       else return;
+      velX = 0;
+      velZ = 0;
       lastMove = performance.now();
     }
 
-    function onPointerLeave() {
-      dragging = false;
+    function onPointerLeave(e) {
+      if (dragging && e.pointerId === dragId) {
+        dragging = false;
+        dragId = null;
+      }
       container.classList.remove("is-dragging");
     }
 
     container.addEventListener("pointerdown", onPointerDown);
     container.addEventListener("pointermove", onPointerMove);
     container.addEventListener("pointerup", onPointerUp);
+    container.addEventListener("pointercancel", onPointerCancel);
     container.addEventListener("pointerleave", onPointerLeave);
     container.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", updateRect, { passive: true });
 
     const resizeObserver = new ResizeObserver(() => {
       const w = container.clientWidth;
@@ -272,6 +380,7 @@ export default function Gallery3D({ onOpen }) {
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      updateRect();
     });
     resizeObserver.observe(container);
 
@@ -284,11 +393,31 @@ export default function Gallery3D({ onOpen }) {
       const now = performance.now();
       const dt = Math.min((now - lastFrame) / 1000, 0.1);
       lastFrame = now;
-      // continuous spin: the globe rolls away from the viewer; only an active drag pauses it
-      drift += ((dragging ? 0 : 0.9) - drift) * 0.02;
+
+      if (dragging) {
+        // bleed tracked velocity so holding still before release doesn't fling
+        const bleed = Math.exp(-10 * dt);
+        velX *= bleed;
+        velZ *= bleed;
+      } else {
+        // inertia: the floor keeps gliding after a flick, then settles
+        target.x += velX * dt;
+        target.z += velZ * dt;
+        const decay = Math.exp(-FLING_DECAY * dt);
+        velX *= decay;
+        velZ *= decay;
+        if (Math.abs(velX) < 0.01) velX = 0;
+        if (Math.abs(velZ) < 0.01) velZ = 0;
+      }
+      const speed = Math.hypot(velX, velZ);
+      const driftWant =
+        reduceMotion || dragging
+          ? 0
+          : DRIFT_SPEED * Math.min(Math.max(1 - speed / 2.5, 0), 1);
+      drift = damp(drift, driftWant, DAMP_DRIFT, dt);
       target.z += drift * dt;
-      cam.x += (target.x - cam.x) * 0.075;
-      cam.z += (target.z - cam.z) * 0.075;
+      cam.x = damp(cam.x, target.x, DAMP_CAM, dt);
+      cam.z = damp(cam.z, target.z, DAMP_CAM, dt);
 
       camera.position.set(cam.x, CAM_Y, cam.z);
       camera.lookAt(cam.x, -9.2, cam.z - 10.8);
@@ -296,14 +425,19 @@ export default function Gallery3D({ onOpen }) {
       grid.position.set(cam.x, 0, cam.z);
 
       for (const group of boards) {
-        const { baseX, baseZ } = group.userData;
-        const bx = wrap(baseX, cam.x, PERIOD_X);
-        const bz = wrap(baseZ, cam.z, PERIOD_Z);
+        const ud = group.userData;
+        const bx = wrap(ud.baseX, cam.x, PERIOD_X);
+        const bz = wrap(ud.baseZ, cam.z, PERIOD_Z);
         const lx = bx - cam.x;
         const lz = bz - cam.z;
-        const want = hovered === group ? 0.5 : 0;
-        group.userData.lift += (want - group.userData.lift) * 0.12;
-        const lift = group.userData.lift;
+        ud.lift = damp(ud.lift, hovered === group ? 0.5 : 0, DAMP_LIFT, dt);
+        const lift = ud.lift;
+        ud.appear = damp(
+          ud.appear,
+          ud.ready && now >= ud.appearAt ? 1 : 0,
+          DAMP_APPEAR,
+          dt,
+        );
         // lay the board tangent to the globe surface at its position
         east.set(1, -lx / CURVE_R, 0).normalize();
         south.set(0, -lz / CURVE_R, 1).normalize();
@@ -318,44 +452,55 @@ export default function Gallery3D({ onOpen }) {
         const dist = camera.position.distanceTo(group.position);
         const t = Math.min(Math.max((dist - 14) / 9, 0), 1);
         const fade = 1 - t * t * (3 - 2 * t);
+        const op = fade * ud.appear;
         for (const mesh of group.children) {
-          mesh.material.opacity = fade;
-          mesh.visible = fade > 0.02;
+          if (mesh.material.opacity !== op) mesh.material.opacity = op;
+          mesh.visible = op > 0.02;
         }
       }
 
-      raycaster.setFromCamera(pointer, camera);
-      const hits = raycaster.intersectObjects(pickMeshes, false);
-      const hit = hits.find((h) => h.object.visible);
-      const next = hit ? hit.object.userData.board : null;
-      if (next !== hovered) {
-        hovered = next;
-        container.style.cursor = hovered ? "pointer" : "";
-      }
+      // picking only runs when the pointer moved or the camera drifted
+      if (pointerDirty || now - lastCast > 50) {
+        lastCast = now;
+        pointerDirty = false;
+        raycaster.setFromCamera(pointer, camera);
+        const hits = raycaster.intersectObjects(pickMeshes, false);
+        const hit = hits.find((h) => h.object.visible);
+        const next = hit ? hit.object.userData.board : null;
+        if (next !== hovered) {
+          hovered = next;
+          container.style.cursor = hovered ? "pointer" : "";
+        }
 
-      const onFloor = raycaster.ray.intersectPlane(floorPlane, floorHit);
-      const wantHit = onFloor && performance.now() - lastMove < 600 ? 1 : 0;
-      hitOn += (wantHit - hitOn) * 0.12;
+        const onFloor = raycaster.ray.intersectPlane(floorPlane, floorHit);
+        const wantHit = onFloor && now - lastMove < 600 ? 1 : 0;
+        hitOn = damp(hitOn, wantHit, DAMP_HIT, dt);
+        if (onFloor) {
+          gridMat.uniforms.uHit.value.set(floorHit.x, floorHit.z);
+          const idx =
+            (((Math.floor(floorHit.x / HALF) + Math.floor(floorHit.z / HALF)) %
+              HIGHLIGHT_COLORS.length) +
+              HIGHLIGHT_COLORS.length) %
+            HIGHLIGHT_COLORS.length;
+          if (idx !== accentIdx) {
+            accentIdx = idx;
+            gridMat.uniforms.uAccent.value
+              .set(HIGHLIGHT_COLORS[idx])
+              .convertLinearToSRGB();
+          }
+        }
+      } else {
+        hitOn = damp(hitOn, now - lastMove < 600 ? 1 : 0, DAMP_HIT, dt);
+      }
       gridMat.uniforms.uHitOn.value = hitOn;
-      if (onFloor) {
-        gridMat.uniforms.uHit.value.set(floorHit.x, floorHit.z);
-        const idx =
-          (((Math.floor(floorHit.x / HALF) + Math.floor(floorHit.z / HALF)) %
-            HIGHLIGHT_COLORS.length) +
-            HIGHLIGHT_COLORS.length) %
-          HIGHLIGHT_COLORS.length;
-        if (idx !== accentIdx) {
-          accentIdx = idx;
-          gridMat.uniforms.uAccent.value
-            .set(HIGHLIGHT_COLORS[idx])
-            .convertLinearToSRGB();
-        }
-      }
 
-      if (leftRef.current)
-        leftRef.current.textContent = (91.737275 - cam.z * 1.3).toFixed(6);
-      if (rightRef.current)
-        rightRef.current.textContent = (cam.x * 1.7 - 30.166021).toFixed(6);
+      if (now - lastCoord > 120) {
+        lastCoord = now;
+        if (leftRef.current)
+          leftRef.current.textContent = (91.737275 - cam.z * 1.3).toFixed(6);
+        if (rightRef.current)
+          rightRef.current.textContent = (cam.x * 1.7 - 30.166021).toFixed(6);
+      }
 
       renderer.render(scene, camera);
     }
@@ -368,9 +513,11 @@ export default function Gallery3D({ onOpen }) {
       container.removeEventListener("pointerdown", onPointerDown);
       container.removeEventListener("pointermove", onPointerMove);
       container.removeEventListener("pointerup", onPointerUp);
+      container.removeEventListener("pointercancel", onPointerCancel);
       container.removeEventListener("pointerleave", onPointerLeave);
       container.removeEventListener("wheel", onWheel);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", updateRect);
       textures.forEach((t) => t.dispose());
       geometries.forEach((g) => g.dispose());
       materials.forEach((m) => m.dispose());

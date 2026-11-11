@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSite } from "@/components/SiteChrome/SiteContext";
 import "./ContactOverlay.css";
 
 const budgets = ["$10k – $25k", "$25k – $50k", "$50k – $100k", "$100k+"];
@@ -9,10 +10,17 @@ const services = ["Brand Identity", "Web Design", "E-Commerce", "Motion", "Desig
 export default function ContactOverlay({ open, onClose }) {
   const [sent, setSent] = useState(false);
   const [picked, setPicked] = useState(["Brand Identity"]);
+  const { lenisRef } = useSite();
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setSent(false);
+  }
 
   useEffect(() => {
     if (!open) return;
-    setSent(false);
+    const lenis = lenisRef?.current;
+    lenis?.stop();
     function key(e) {
       if (e.key === "Escape") onClose();
     }
@@ -21,8 +29,9 @@ export default function ContactOverlay({ open, onClose }) {
     return () => {
       window.removeEventListener("keydown", key);
       document.body.style.overflow = "";
+      lenis?.start();
     };
-  }, [open, onClose]);
+  }, [open, onClose, lenisRef]);
 
   if (!open) return null;
 

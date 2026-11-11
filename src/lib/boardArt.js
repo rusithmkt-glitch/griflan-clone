@@ -354,17 +354,23 @@ function loadImage(src) {
   });
 }
 
-export async function getBoardTiles(project) {
-  if (cache.has(project.slug)) return cache.get(project.slug);
-  const img = await loadImage(project.image);
-  const canvases = [
-    tileHero(project, img),
-    tileWordmark(project),
-    tilePalette(project),
-    tileTagline(project),
-    tileUI(project, img),
-    tilePattern(project, img),
-  ];
-  cache.set(project.slug, canvases);
-  return canvases;
+export function getBoardTiles(project) {
+  // cache the promise so concurrent callers share one generation run
+  if (!cache.has(project.slug)) {
+    cache.set(
+      project.slug,
+      (async () => {
+        const img = await loadImage(project.image);
+        return [
+          tileHero(project, img),
+          tileWordmark(project),
+          tilePalette(project),
+          tileTagline(project),
+          tileUI(project, img),
+          tilePattern(project, img),
+        ];
+      })(),
+    );
+  }
+  return cache.get(project.slug);
 }

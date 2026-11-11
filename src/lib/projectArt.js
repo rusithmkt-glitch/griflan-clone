@@ -328,29 +328,43 @@ function loadImage(src) {
   });
 }
 
-export async function getMasonry(project) {
-  if (cache.has(project.slug)) return cache.get(project.slug);
-  const img = await loadImage(project.image);
-  const tiles = [
-    photoPortrait(project, img),
-    wordmarkSquare(project),
-    palettePortrait(project),
-    taglineLandscape(project),
-    uiPortrait(project),
-    patternSquare(project),
-    photoLandscape(project, img),
-    typePortrait(project),
-    markGridLandscape(project),
-    bandsLandscape(project),
-    quoteSquare(project),
-    photoTall(project, img),
-  ].map(([c, w, h, caption], i) => ({
-    src: c.toDataURL("image/jpeg", 0.88),
-    w,
-    h,
-    caption,
-    index: i + 1,
-  }));
-  cache.set(project.slug, tiles);
-  return tiles;
+export function getMasonry(project) {
+  // cache the promise so concurrent callers share one generation run
+  if (!cache.has(project.slug)) {
+    cache.set(
+      project.slug,
+      (async () => {
+        const img = await loadImage(project.image);
+        const makers = [
+          photoPortrait,
+          wordmarkSquare,
+          palettePortrait,
+          taglineLandscape,
+          uiPortrait,
+          patternSquare,
+          photoLandscape,
+          typePortrait,
+          markGridLandscape,
+          bandsLandscape,
+          quoteSquare,
+          photoTall,
+        ];
+        const tiles = [];
+        for (let i = 0; i < makers.length; i++) {
+          const [c, w, h, caption] = makers[i](project, img);
+          tiles.push({
+            src: c.toDataURL("image/jpeg", 0.88),
+            w,
+            h,
+            caption,
+            index: i + 1,
+          });
+          // yield between tiles so encoding never blocks a frame
+          await new Promise((r) => setTimeout(r, 0));
+        }
+        return tiles;
+      })(),
+    );
+  }
+  return cache.get(project.slug);
 }

@@ -10,7 +10,7 @@
   background: var(--bg);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.42s ease;
+  transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   z-index: 65;
 }
 .home-veil.is-on {
