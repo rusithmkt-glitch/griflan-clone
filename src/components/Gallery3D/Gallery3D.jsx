@@ -283,6 +283,8 @@ export default function Gallery3D({ onOpen, flyRef }) {
     let dragging = false;
     let dragId = null;
     let moved = 0;
+    let downX = 0;
+    let downY = 0;
     let lastX = 0;
     let lastY = 0;
     let lastMoveT = 0;
@@ -309,8 +311,10 @@ export default function Gallery3D({ onOpen, flyRef }) {
       moved = 0;
       velX = 0;
       velZ = 0;
-      lastX = e.clientX;
-      lastY = e.clientY;
+      downX = e.clientX;
+      downY = e.clientY;
+      lastX = downX;
+      lastY = downY;
       lastMoveT = performance.now();
       updateRect();
       try {
@@ -329,7 +333,10 @@ export default function Gallery3D({ onOpen, flyRef }) {
       lastMoveT = now;
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
-      moved += Math.abs(dx) + Math.abs(dy);
+      moved = Math.max(
+        moved,
+        Math.hypot(e.clientX - downX, e.clientY - downY),
+      );
       const wx = -dx * DRAG_SCALE;
       const wz = -dy * DRAG_SCALE;
       target.x += wx;
@@ -348,13 +355,26 @@ export default function Gallery3D({ onOpen, flyRef }) {
     function onPointerUp(e) {
       if (e.pointerId !== dragId) return;
       container.classList.remove("is-dragging");
-      const wasDrag = moved > 6;
+      const distance = Math.max(
+        moved,
+        Math.hypot(e.clientX - downX, e.clientY - downY),
+      );
+      const wasDrag = distance > (e.pointerType === "touch" ? 10 : 6);
       dragging = false;
       dragId = null;
       if (!wasDrag) {
         velX = 0;
         velZ = 0;
-        if (hovered) onOpenRef.current?.(hovered.userData.project.slug);
+        updateRect();
+        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        pointerDirty = true;
+        raycaster.setFromCamera(pointer, camera);
+        const hit = raycaster
+          .intersectObjects(pickMeshes, false)
+          .find((h) => h.object.visible);
+        if (hit)
+          onOpenRef.current?.(hit.object.userData.board.userData.project.slug);
       }
     }
     function onPointerCancel(e) {
