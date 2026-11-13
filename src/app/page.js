@@ -12,6 +12,7 @@ import "./home.css";
 // scroll position, so this maps a wheel notch to a comfortable glide; the
 // recentering loop below makes the total travel unbounded.
 const FLY_SCALE = 0.06;
+const MOBILE_FLY_SCALE = 0.045;
 
 export default function Home() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function Home() {
 
   useEffect(() => {
     document.documentElement.classList.add("home-infinite");
+    const mobile = window.matchMedia("(max-width: 760px)");
     let origin = null;
     let raf = 0;
 
@@ -59,7 +61,9 @@ export default function Home() {
           lenis.scrollTo(y, { immediate: true });
         }
       }
-      flyRef.current = (y - origin) * FLY_SCALE;
+      const scale = mobile.matches ? MOBILE_FLY_SCALE : FLY_SCALE;
+      flyRef.current += (y - origin) * scale;
+      origin = y;
     };
 
     raf = requestAnimationFrame(loop);
